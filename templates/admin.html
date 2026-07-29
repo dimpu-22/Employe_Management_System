@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header>
+    <h1>🛍 Admin Dashboard</h1>
+</header>
+
+<h2>Store Statistics</h2>
+
+<div class="products">
+
+    <div class="card">
+        <h3>Total Users</h3>
+        <h1>{{ users }}</h1>
+    </div>
+
+    <div class="card">
+        <h3>Total Products</h3>
+        <h1>{{ products }}</h1>
+    </div>
+
+    <div class="card">
+        <h3>Total Orders</h3>
+        <h1>{{ orders }}</h1>
+    </div>
+
+</div>
+
+</body>
+</html>

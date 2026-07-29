@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Local Store</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header>
+    <h1>🛍 Local Store E-Commerce</h1>
+
+    <nav>
+    <a href="/">Home</a>
+    <a href="/products">Products</a>
+    <a href="/cart">Cart</a>
+
+    {% if session.get("user_id") %}
+        <a href="/orders">My Orders</a>
+        <span>Welcome, {{ session["user_name"] }}</span>
+        <a href="/logout">Logout</a>
+    {% else %}
+        <a href="/login">Login</a>
+        <a href="/register">Register</a>
+    {% endif %}
+</nav>
+
+</header>
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="flash-container">
+            {% for message in messages %}
+                <div class="flash-message">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+
+<section class="hero">
+
+    <h2>Welcome to Local Store</h2>
+
+    <p>
+        Discover premium electronics and accessories at unbeatable prices.
+        Shop with confidence, enjoy secure payments, and get fast delivery
+        right to your doorstep.
+    </p>
+
+    <a href="/products" class="btn">
+        🛒 Shop Now
+    </a>
+
+</section>
+
+</body>
+</html>

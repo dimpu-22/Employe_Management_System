@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shopping Cart</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header>
+    <h1>🛒 Shopping Cart</h1>
+
+    <nav>
+        <a href="/">Home</a>
+        <a href="/products">Products</a>
+        <a href="/cart">Cart</a>
+    </nav>
+</header>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="flash-container">
+            {% for message in messages %}
+                <div class="flash-message">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<h2 class="title">Your Cart</h2>
+
+<div class="products">
+
+{% if products %}
+
+    {% for product in products %}
+
+    <div class="card">
+
+        <h3>{{ product["name"] }}</h3>
+
+        <p class="price">${{ product["price"] }}</p>
+
+        <a href="/remove_from_cart/{{ product['id'] }}">
+            <button class="btn">Remove</button>
+        </a>
+
+    </div>
+
+    {% endfor %}
+
+</div>
+
+<div class="total-box">
+
+    <h2>Total: ${{ total }}</h2>
+
+    <a href="/checkout">
+        <button class="btn">Proceed to Checkout</button>
+    </a>
+
+</div>
+
+{% else %}
+
+<h3 style="text-align:center;">Your cart is empty.</h3>
+
+{% endif %}
+
+<footer class="footer">
+
+    <div class="footer-content">
+
+        <div>
+            <h3>🛍 Local Store</h3>
+            <p>Your trusted online shopping destination.</p>
+        </div>
+
+        <div>
+            <h3>Quick Links</h3>
+            <a href="/">Home</a><br>
+            <a href="/products">Products</a><br>
+            <a href="/cart">Cart</a>
+        </div>
+
+        <div>
+            <h3>Contact</h3>
+            <p>Email: support@localstore.com</p>
+            <p>Phone: +1 123-456-7890</p>
+        </div>
+
+    </div>
+
+    <hr>
+
+    <p class="copyright">
+        © 2026 Local Store Ecommerce. All Rights Reserved.
+    </p>
+
+</footer>
+
+</body>
+</html>

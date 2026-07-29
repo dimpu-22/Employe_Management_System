@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order Success</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header>
+    <h1>🛍 Local Store</h1>
+</header>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="flash-container">
+            {% for message in messages %}
+                <div class="flash-message">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<div class="hero">
+    <h2>🎉 Thank You!</h2>
+    <p>Your order has been placed successfully.</p>
+
+    <a href="/products" class="btn">
+        Continue Shopping
+    </a>
+</div>
+
+<footer class="footer">
+
+    <div class="footer-content">
+
+        <div>
+            <h3>🛍 Local Store</h3>
+            <p>Your trusted online shopping destination.</p>
+        </div>
+
+        <div>
+            <h3>Quick Links</h3>
+            <a href="/">Home</a><br>
+            <a href="/products">Products</a><br>
+            <a href="/cart">Cart</a>
+        </div>
+
+        <div>
+            <h3>Contact</h3>
+            <p>Email: support@localstore.com</p>
+            <p>Phone: +1 123-456-7890</p>
+        </div>
+
+    </div>
+
+    <hr>
+
+    <p class="copyright">
+        © 2026 Local Store Ecommerce. All Rights Reserved.
+    </p>
+
+</footer>
+
+</body>
+</html>
