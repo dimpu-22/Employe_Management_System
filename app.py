@@ -1,246 +1,274 @@
-from flask import Flask, render_template
-from database import create_tables
 
-from flask import Flask, render_template, request, redirect, flash, session
-
-from datetime import datetime
-
-
+from flask import Flask, render_template, request, redirect, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-from database import get_connection, create_tables
+from database import get_connection
 
+from reportlab.platypus import SimpleDocTemplate, Table
+from flask import send_file
 
+import openpyxl
+from flask import send_file
 
 app = Flask(__name__)
-app.secret_key = "localstore_secret_key_123"
+app.secret_key = "employee_secret_key"
 
-@app.route("/")
-def home():
-    return render_template("index.html")
 
-@app.route("/products")
-def products():
+@app.route("/employees")
+def employees():
 
-    if "user_id" not in session:
-        return redirect("/login")
-
-    search = request.args.get("search", "")
+    if "admin" not in session:
+        return redirect("/")
 
     conn = get_connection()
-    cursor = conn.cursor()
-
-    if search:
-        cursor.execute(
-            "SELECT * FROM products WHERE name LIKE ?",
-            ("%" + search + "%",)
-        )
-    else:
-        cursor.execute("SELECT * FROM products")
-
-    products = cursor.fetchall()
+    employees = conn.execute("SELECT * FROM employees").fetchall()
     conn.close()
 
-    return render_template(
-        "products.html",
-        products=products,
-        search=search
-    )
+    return render_template("employees.html", employees=employees)
 
+@app.route("/add_employee", methods=["GET", "POST"])
+def add_employee():
 
-@app.route("/cart")
-def cart():
-
-    cart = session.get("cart", [])
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    products = []
-    total = 0
-
-    for product_id in cart:
-        cursor.execute("SELECT * FROM products WHERE id=?", (product_id,))
-        product = cursor.fetchone()
-
-        if product:
-            products.append(product)
-            total += product["price"]
-
-    conn.close()
-
-    return render_template(
-        "cart.html",
-        products=products,
-        total=total
-    )
-
-@app.route("/checkout")
-def checkout():
-
-    if "user_id" not in session:
-        return redirect("/login")
-
-    if "cart" not in session or len(session["cart"]) == 0:
-        flash("Your cart is empty!")
-        return redirect("/cart")
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "INSERT INTO orders(user_id, order_date) VALUES(?, ?)",
-        (session["user_id"], datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    )
-
-    order_id = cursor.lastrowid
-
-    for product_id in session["cart"]:
-        cursor.execute(
-            "INSERT INTO order_items(order_id, product_id) VALUES(?, ?)",
-            (order_id, product_id)
-        )
-
-    conn.commit()
-    conn.close()
-
-    session["cart"] = []
-
-    flash("🎉 Order placed successfully!")
-    return render_template("checkout.html")
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-
-    if request.method == "POST":
-
-        email = request.form["email"]
-        password = request.form["password"]
-
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT * FROM users WHERE email=?", (email,))
-        user = cursor.fetchone()
-
-        conn.close()
-        
-        if user and check_password_hash(user["password"], password):
-            session["user_id"] = user["id"]
-            session["user_name"] = user["name"]
-
-            flash("Login Successful!")
-            return redirect("/")
-        
-        
-        
-        flash("Invalid Email or Password")
-
-    return render_template("login.html")
-
-@app.route("/orders")
-def orders():
-
-    if "user_id" not in session:
-        return redirect("/login")
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT * FROM orders
-        WHERE user_id=?
-        ORDER BY id DESC
-    """, (session["user_id"],))
-
-    orders = cursor.fetchall()
-
-    conn.close()
-
-    return render_template("orders.html", orders=orders)
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/login")
-
-@app.route("/admin")
-def admin():
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT COUNT(*) FROM users")
-    users = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM products")
-    products = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM orders")
-    orders = cursor.fetchone()[0]
-
-    conn.close()
-
-    return render_template(
-        "admin.html",
-        users=users,
-        products=products,
-        orders=orders
-    )
-
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
+    if "admin" not in session:
+        return redirect("/")
 
     if request.method == "POST":
 
         name = request.form["name"]
         email = request.form["email"]
-        password = generate_password_hash(request.form["password"])
-
+        phone = request.form["phone"]
+        department = request.form["department"]
+        designation = request.form["designation"]
+        salary = request.form["salary"]
+        joining_date = request.form["joining_date"]
+        
+        if not all([name, email, phone, department, designation, salary, joining_date]):
+            flash("All fields are required.")
+            return redirect("/add_employee")
+        
         conn = get_connection()
-        cursor = conn.cursor()
 
-        cursor.execute(
-            "INSERT INTO users(name,email,password) VALUES(?,?,?)",
-            (name, email, password)
+        conn.execute(
+            """
+            INSERT INTO employees
+            (name,email,phone,department,designation,salary,joining_date)
+            VALUES(?,?,?,?,?,?,?)
+            """,
+            (
+                name,
+                email,
+                phone,
+                department,
+                designation,
+                salary,
+                joining_date,
+            ),
         )
 
         conn.commit()
         conn.close()
 
-        flash("Registration Successful!")
-        return redirect("/login")
+        return redirect("/employees")
 
-    return render_template("register.html")
+    return render_template("add_employee.html")
 
-@app.route("/add_to_cart/<int:product_id>")
-def add_to_cart(product_id):
+@app.route("/", methods=["GET", "POST"])
+def login():
 
-    if "cart" not in session:
-        session["cart"] = []
+    if request.method == "POST":
 
-    cart = session["cart"]
-    cart.append(product_id)
-    session["cart"] = cart
+        username = request.form["username"]
+        password = request.form["password"]
 
-    flash("Product added to cart!")
-    return redirect("/products")
+        conn = get_connection()
 
-@app.route("/remove_from_cart/<int:product_id>")
-def remove_from_cart(product_id):
+        admin = conn.execute(
+            "SELECT * FROM admin WHERE username=?",
+            (username,)
+        ).fetchone()
 
-    cart = session.get("cart", [])
+        conn.close()
 
-    if product_id in cart:
-        cart.remove(product_id)
+        if admin and check_password_hash(admin["password"], password):
+            session["admin"] = username
+            return redirect("/dashboard")
 
-    session["cart"] = cart
+        flash("Invalid Username or Password")
 
-    flash("Product removed from cart!")
-    return redirect("/cart")
+    return render_template("login.html")
+
+@app.route("/dashboard")
+def dashboard():
+
+    if "admin" not in session:
+        return redirect("/")
+
+    conn = get_connection()
+
+    total = conn.execute(
+        "SELECT COUNT(*) FROM employees"
+    ).fetchone()[0]
+
+    conn.close()
+
+    return render_template("dashboard.html", total=total)
+
+@app.route("/edit_employee/<int:id>", methods=["GET", "POST"])
+def edit_employee(id):
+
+    if "admin" not in session:
+        return redirect("/")
+
+    conn = get_connection()
+
+    employee = conn.execute(
+        "SELECT * FROM employees WHERE id=?",
+        (id,)
+    ).fetchone()
+
+    if request.method == "POST":
+
+        name = request.form["name"]
+        email = request.form["email"]
+        phone = request.form["phone"]
+        department = request.form["department"]
+        designation = request.form["designation"]
+        salary = request.form["salary"]
+        joining_date = request.form["joining_date"]
+
+        conn.execute("""
+        UPDATE employees
+        SET
+        name=?,
+        email=?,
+        phone=?,
+        department=?,
+        designation=?,
+        salary=?,
+        joining_date=?
+        WHERE id=?
+        """,
+        (
+            name,
+            email,
+            phone,
+            department,
+            designation,
+            salary,
+            joining_date,
+            id
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect("/employees")
+
+    conn.close()
+
+    return render_template(
+        "edit_employee.html",
+        employee=employee
+    )
+    
+@app.route("/delete_employee/<int:id>")
+def delete_employee(id):
+
+    if "admin" not in session:
+        return redirect("/")
+
+    conn = get_connection()
+
+    conn.execute(
+        "DELETE FROM employees WHERE id=?",
+        (id,)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/employees")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
+
+@app.route("/export_excel")
+def export_excel():
+
+    if "admin" not in session:
+        return redirect("/")
+
+    conn = get_connection()
+
+    employees = conn.execute("SELECT * FROM employees").fetchall()
+
+    conn.close()
+
+    workbook = openpyxl.Workbook()
+
+    sheet = workbook.active
+
+    sheet.title = "Employees"
+
+    sheet.append([
+        "ID",
+        "Name",
+        "Email",
+        "Phone",
+        "Department",
+        "Designation",
+        "Salary",
+        "Joining Date"
+    ])
+
+    for employee in employees:
+
+        sheet.append([
+            employee["id"],
+            employee["name"],
+            employee["email"],
+            employee["phone"],
+            employee["department"],
+            employee["designation"],
+            employee["salary"],
+            employee["joining_date"]
+        ])
+
+    workbook.save("employees.xlsx")
+
+    return send_file(
+        "employees.xlsx",
+        as_attachment=True
+    )
+    
+@app.route("/export_pdf")
+def export_pdf():
+
+    if "admin" not in session:
+        return redirect("/")
+
+    conn = get_connection()
+    employees = conn.execute("SELECT * FROM employees").fetchall()
+    conn.close()
+
+    pdf = SimpleDocTemplate("employees.pdf")
+
+    data = [["ID","Name","Email","Department"]]
+
+    for emp in employees:
+        data.append([
+            emp["id"],
+            emp["name"],
+            emp["email"],
+            emp["department"]
+        ])
+
+    table = Table(data)
+    pdf.build([table])
+
+    return send_file("employees.pdf", as_attachment=True)
+
 
 if __name__ == "__main__":
-    create_tables()
-    app.run()
-    
+    app.run(debug=True)

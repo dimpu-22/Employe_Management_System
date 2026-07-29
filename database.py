@@ -1,73 +1,82 @@
 import sqlite3
 
+from werkzeug.security import generate_password_hash
+
 def get_connection():
-    conn = sqlite3.connect("store.db")
+    conn = sqlite3.connect("employee.db")
     conn.row_factory = sqlite3.Row
     return conn
 
-def create_tables():
+def init_db():
     conn = get_connection()
+
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS employees(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        department TEXT NOT NULL,
+        designation TEXT NOT NULL,
+        salary REAL NOT NULL,
+        joining_date TEXT NOT NULL
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+def init_db():
+    conn = get_connection()
+
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS employees(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        department TEXT NOT NULL,
+        designation TEXT NOT NULL,
+        salary REAL NOT NULL,
+        joining_date TEXT NOT NULL
+    )
+    """)
+
+    # ===== Paste Step 24 HERE =====
+
     cursor = conn.cursor()
 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users(
+    CREATE TABLE IF NOT EXISTS admin(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        email TEXT UNIQUE,
+        username TEXT UNIQUE,
         password TEXT
     )
     """)
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS products(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        description TEXT,
-        price REAL,
-        image TEXT
+    cursor.execute(
+        "SELECT * FROM admin WHERE username=?",
+        ("admin",)
     )
-    """)
-    
-    
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS cart(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        product_id INTEGER,
-        quantity INTEGER
-    )
-    """)
+    admin = cursor.fetchone()
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS orders(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        total REAL,
-        order_date TEXT
-    )
-    """)
-    cursor.execute("""
-CREATE TABLE IF NOT EXISTS order_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER,
-    product_id INTEGER
-)
-""")
-    
-    cursor.execute("SELECT COUNT(*) FROM products")
+    if not admin:
+        cursor.execute(
+            "INSERT INTO admin(username,password) VALUES(?,?)",
+            (
+                "admin",
+                generate_password_hash("admin123")
+            )
+        )
 
-    if cursor.fetchone()[0] == 0:
-        cursor.executemany("""
-            INSERT INTO products(name, description, price, image)
-            VALUES(?,?,?,?)
-        """, [
-            ("Wireless Mouse", "High precision wireless mouse", 20, "https://via.placeholder.com/250"),
-            ("Mechanical Keyboard", "RGB Gaming Keyboard", 45, "https://via.placeholder.com/250"),
-            ("Bluetooth Headphones", "Noise Cancelling Headphones", 65, "https://via.placeholder.com/250"),
-            ("Smart Watch", "Fitness Smart Watch", 80, "https://via.placeholder.com/250")
-        ])
-
-    
+    # ===== End of Step 24 =====
 
     conn.commit()
     conn.close()
     
+    
+
+
+if __name__ == "__main__":
+    init_db()
